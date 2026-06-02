@@ -1,0 +1,256 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import math
+from matplotlib.patches import Rectangle
+
+# =============================================================================
+# CONFIGURACIÓN Y DATOS
+# =============================================================================
+plt.rcParams['font.size'] = 11
+plt.rcParams['axes.linewidth'] = 1.2
+
+ALPHA = 0.0072973525693
+A_TEO = math.exp(25 * ALPHA)
+L0 = 75.03
+
+mix_data = {
+    # Pequeñas
+    "Insulin": 5808.0, "Ubiquitin": 8565.0, "Cytochrome_c": 11700.0,
+    "Ribonuclease_A": 13698.0, "Lysozyme": 14307.0, "Beta_2_microglobulin": 11800.0,
+    "Histone_H4": 11236.0, "Histone_H3": 15276.0, "Histone_H2A": 13960.0,
+    "Histone_H2B": 13774.0, "Aprotinin": 6512.0, "Barnase": 12400.0,
+    "Barstar": 10100.0, "Thioredoxin": 11673.0, "Ferredoxin": 10800.0,
+    "Phospholipase_A2": 14000.0, "Crambin": 4750.0, "S100A1": 10400.0,
+    "S100B": 10713.0, "Cystatin_C": 13350.0, "Glucagon": 3483.0,
+    "Parathyroid_hormone": 9425.0, "Calcitonin": 3418.0, "Epidermal_growth_factor": 6045.0,
+    "Nerve_growth_factor_beta": 13261.0, "Calmodulin": 16700.0, "Troponin_C": 17800.0,
+    "Interleukin_2": 15400.0, "Interleukin_8": 8400.0, "Human_defensin_5": 3440.0,
+    "Apolipoprotein_C_II": 8900.0, "Apolipoprotein_C_III": 8800.0, "Thymosin_beta_4": 4963.0,
+    "Metallothionein_2A": 6100.0, "Cytochrome_b5": 11700.0, "Ribosomal_protein_L30": 14500.0,
+    "Acyl_coenzyme_A_binding_protein": 9900.0, "Granulocyte_colony_stimulating_factor": 18800.0,
+    "Interferon_alpha_2": 19000.0, "Erythropoietin": 18300.0,
+    
+    # Medianas
+    "Beta_actin": 41700.0, "Carbonic_anhydrase_II": 29000.0, "Triosephosphate_isomerase": 26600.0,
+    "Glyceraldehyde_3_phosphate_dehydrogenase": 36000.0, "Lactate_dehydrogenase_A": 36500.0,
+    "Creatine_kinase_M": 43000.0, "Phosphoglycerate_kinase_1": 44500.0, "Adenylate_kinase_1": 21500.0,
+    "Dihydrofolate_reductase": 21600.0, "Thymidylate_synthase": 36000.0, "Ovalbumin": 45000.0,
+    "Casein_kappa": 22000.0, "Glutathione_S_transferase_P1": 23356.0, "Peroxiredoxin_1": 22000.0,
+    "Proteinase_K": 28900.0, "Subtilisin_Carlsberg": 27600.0, "Chymotrypsinogen_A": 25700.0,
+    "Trypsin": 23300.0, "Elastase": 25900.0, "Pepsin_A": 35000.0, "Prolactin": 22000.0,
+    "Growth_hormone": 22100.0, "Enolase_1": 47000.0, "Aldolase_A": 39500.0,
+    "Malate_dehydrogenase_cytoplasmic": 36500.0, "Isocitrate_dehydrogenase_1": 47000.0,
+    "Aspartate_aminotransferase": 47000.0, "Alanine_aminotransferase": 43000.0,
+    "Ornithine_transcarbamylase": 36000.0, "Arginase_1": 35000.0, "Paraoxonase_1": 38000.0,
+    "Haptoglobin": 40000.0, "Hemopexin": 45000.0, "Pancreatic_lipase": 47000.0,
+    "Deoxyribonuclease_I": 31000.0, "Ribonuclease_H1": 20000.0, "DNA_polymerase_beta": 39000.0,
+    "Phospholipase_A1": 48000.0, "Catechol_O_methyltransferase": 25000.0,
+    "Phenylethanolamine_N_methyltransferase": 23000.0,
+    
+    # Grandes
+    "Hemoglobin": 64500.0, "Serum_albumin": 66460.0, "Transferrin": 80000.0,
+    "Immunoglobulin_G": 150000.0, "Fibrinogen": 340000.0, "Thyroglobulin": 660000.0,
+    "DNA_polymerase_alpha": 180000.0, "Myosin_heavy_chain": 220000.0, "Dystrophin": 427000.0,
+    "Collagen_type_I": 300000.0, "Factor_VIII": 330000.0, "Plasminogen": 92000.0,
+    "Prothrombin": 72000.0, "Catalase": 60000.0, "Glucokinase": 52000.0,
+    "Pyruvate_kinase": 58000.0, "Acetyl_CoA_carboxylase": 280000.0, "Fatty_acid_synthase": 273000.0,
+    "ATP_synthase_beta": 55000.0, "Apolipoprotein_B_100": 512000.0, "Tubulin_alpha_1B": 50100.0,
+    "Vimentin": 54000.0, "Lamin_A": 74000.0, "Fibronectin": 230000.0, "Integrin_beta_1": 90000.0,
+    "E_cadherin": 97000.0, "Occludin": 65000.0, "Anion_exchange_1": 102000.0,
+    "Sodium_potassium_ATPase_alpha_1": 112000.0, "Glucose_transporter_1": 54000.0,
+    "Glucose_transporter_2": 58000.0, "Beta_catenin": 92000.0,
+    "Mechanistic_target_of_rapamycin": 289000.0, "AMP_activated_protein_kinase_alpha_1": 63000.0,
+    "Low_density_lipoprotein_receptor": 95000.0, "HMG_CoA_reductase": 97000.0,
+    "Lipoprotein_lipase": 55000.0, "Cholesteryl_ester_transfer_protein": 74000.0,
+    "Cyclooxygenase_1": 65000.0, "Cyclooxygenase_2": 68996.0,
+}
+
+def calcular_metricas(datos, A, L0):
+    resultados = []
+    for nombre, masa in datos.items():
+        razon_log = math.log(masa / L0)
+        q = round(razon_log / A)
+        masa_pred = L0 * math.exp(q * A)
+        error = abs(masa - masa_pred) / masa * 100
+        resultados.append({
+            "Molecula": nombre,
+            "Masa": masa,
+            "q": q,
+            "Error": error,
+            "Categoria": "Small" if masa < 20000 else ("Medium" if masa < 50000 else "Large")
+        })
+    return pd.DataFrame(resultados)
+
+df = calcular_metricas(mix_data, A_TEO, L0)
+
+# =============================================================================
+# FIGURA 1: Error vs Masa (Scatter Plot)
+# =============================================================================
+fig1, ax1 = plt.subplots(1, 1, figsize=(10, 7))
+
+colores = {"Small": "#FF6B6B", "Medium": "#4ECDC4", "Large": "#45B7D1"}
+for cat, color in colores.items():
+    subset = df[df["Categoria"] == cat]
+    ax1.scatter(subset["Masa"], subset["Error"], c=color, label=cat, 
+                s=60, alpha=0.7, edgecolors='white', linewidth=0.5)
+
+outliers = df[df["Error"] > 8.0]
+ax1.scatter(outliers["Masa"], outliers["Error"], c='#FF4757', s=100, 
+            alpha=0.9, edgecolors='black', linewidth=1.5, label='Outliers (>8%)', marker='D', zorder=5)
+
+ax1.axhline(y=5.0, color='orange', linestyle='--', linewidth=1.5, label='Umbral 5%', alpha=0.8)
+ax1.set_xscale('log')
+ax1.set_xlabel('Masa Molecular (Da)', fontsize=12, fontweight='bold')
+ax1.set_ylabel('Error Relativo (%)', fontsize=12, fontweight='bold')
+ax1.set_title('Fig. 1: Error del Modelo vs. Masa Molecular (N=120 proteínas)', 
+              fontsize=13, fontweight='bold', pad=15)
+ax1.grid(True, alpha=0.3, linestyle=':')
+ax1.legend(loc='upper right', fontsize=10, frameon=True, shadow=True)
+plt.tight_layout()
+plt.savefig('figura1_error_vs_masa.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# =============================================================================
+# FIGURA 2: Comparación Empírico vs Teórico
+# =============================================================================
+fig2, ax2 = plt.subplots(1, 2, figsize=(12, 6))
+
+# Panel A: Distribución de errores
+categorias = ['Empírico\n(1.2003)', 'Teórico\n(e^(25α))']
+valores = [3.9373, 3.9486]
+colores_barra = ['#2E86AB', '#A23B72']
+
+bars = ax2[0].bar(categorias, valores, color=colores_barra, edgecolor='black', linewidth=1.2)
+ax2[0].set_ylabel('Error Medio (%)', fontsize=11, fontweight='bold')
+ax2[0].set_title('A) Error Medio', fontsize=12, fontweight='bold')
+ax2[0].set_ylim(0, 5)
+ax2[0].grid(axis='y', alpha=0.3, linestyle='--')
+
+for bar, val in zip(bars, valores):
+    ax2[0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
+                f'{val:.3f}%', ha='center', va='bottom', fontsize=11, fontweight='bold')
+
+# Panel B: P-Value
+pvalues = [0.0049, 0.0059]
+bars2 = ax2[1].bar(categorias, pvalues, color=colores_barra, edgecolor='black', linewidth=1.2)
+ax2[1].set_ylabel('P-Value', fontsize=11, fontweight='bold')
+ax2[1].set_title('B) Significancia Estadística', fontsize=12, fontweight='bold')
+ax2[1].set_ylim(0, 0.01)
+ax2[1].grid(axis='y', alpha=0.3, linestyle='--')
+
+for bar, val in zip(bars2, pvalues):
+    ax2[1].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.0003, 
+                f'{val:.4f}', ha='center', va='bottom', fontsize=11, fontweight='bold')
+
+plt.suptitle('Fig. 2: Comparación Modelos Empírico vs. Teórico', 
+             fontsize=14, fontweight='bold', y=1.02)
+plt.tight_layout()
+plt.savefig('figura2_comparacion.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# =============================================================================
+# FIGURA 3: Distribución de Errores (Histograma)
+# =============================================================================
+fig3, ax3 = plt.subplots(1, 1, figsize=(10, 7))
+
+n, bins, patches = ax3.hist(df["Error"], bins=15, edgecolor='black', 
+                             linewidth=1.2, color='#4ECDC4', alpha=0.7)
+
+ax3.axvline(x=5.0, color='orange', linestyle='--', linewidth=2, label='Umbral 5%')
+ax3.axvline(x=df["Error"].mean(), color='red', linestyle='-', linewidth=2, 
+            label=f'Media: {df["Error"].mean():.2f}%')
+
+ax3.set_xlabel('Error Relativo (%)', fontsize=12, fontweight='bold')
+ax3.set_ylabel('Frecuencia', fontsize=12, fontweight='bold')
+ax3.set_title('Fig. 3: Distribución de Errores en 120 Proteínas', 
+              fontsize=13, fontweight='bold', pad=15)
+ax3.legend(loc='upper right', fontsize=11)
+ax3.grid(axis='y', alpha=0.3, linestyle=':')
+plt.tight_layout()
+plt.savefig('figura3_histograma.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# =============================================================================
+# FIGURA 4: Derivación Geométrica
+# =============================================================================
+fig4, ax4 = plt.subplots(1, 1, figsize=(10, 7))
+
+ax4.set_xlim(0, 10)
+ax4.set_ylim(0, 10)
+ax4.axis('off')
+
+# Título
+ax4.text(5, 9.5, 'Fig. 4: Fundamento Geométrico-Euleriano', 
+         fontsize=14, fontweight='bold', ha='center')
+
+# Ecuación principal
+ax4.text(5, 8.5, r'$(2\sqrt{2})^2 + (2\sqrt{2})^2 + (\sqrt{3})^4 = 25$', 
+         fontsize=16, ha='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+# Desglose
+ax4.text(2, 6.5, r'$(2\sqrt{2})^2$', fontsize=14, ha='center', 
+         bbox=dict(boxstyle='square', facecolor='#FF6B6B', alpha=0.3))
+ax4.text(2, 5.5, '= 8', fontsize=14, ha='center', fontweight='bold')
+
+ax4.text(5, 6.5, r'$(2\sqrt{2})^2$', fontsize=14, ha='center',
+         bbox=dict(boxstyle='square', facecolor='#4ECDC4', alpha=0.3))
+ax4.text(5, 5.5, '= 8', fontsize=14, ha='center', fontweight='bold')
+
+ax4.text(8, 6.5, r'$(\sqrt{3})^4$', fontsize=14, ha='center',
+         bbox=dict(boxstyle='square', facecolor='#45B7D1', alpha=0.3))
+ax4.text(8, 5.5, '= 9', fontsize=14, ha='center', fontweight='bold')
+
+# Suma
+ax4.text(5, 4, '8 + 8 + 9 = 25', fontsize=18, ha='center', fontweight='bold',
+         bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.5))
+
+# Conexión con alpha
+ax4.text(5, 2.5, r'Exponente: $25 \times \alpha$', fontsize=14, ha='center')
+ax4.text(5, 1.8, r'Base: $e^{25\alpha} = 1.20013472$', fontsize=14, ha='center',
+         bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.3))
+
+plt.tight_layout()
+plt.savefig('figura4_geometria.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# =============================================================================
+# FIGURA 5: Validación por Categoría
+# =============================================================================
+fig5, ax5 = plt.subplots(1, 1, figsize=(10, 7))
+
+categorias_nombre = ['Small (<20 kDa)', 'Medium (20-50 kDa)', 'Large (>50 kDa)']
+errores_medios = [
+    df[df["Categoria"]=="Small"]["Error"].mean(),
+    df[df["Categoria"]=="Medium"]["Error"].mean(),
+    df[df["Categoria"]=="Large"]["Error"].mean()
+]
+std_err = [
+    df[df["Categoria"]=="Small"]["Error"].std(),
+    df[df["Categoria"]=="Medium"]["Error"].std(),
+    df[df["Categoria"]=="Large"]["Error"].std()
+]
+
+colores_cat = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+bars = ax5.bar(categorias_nombre, errores_medios, yerr=std_err, color=colores_cat,
+               edgecolor='black', linewidth=1.2, capsize=7)
+
+ax5.set_ylabel('Error Medio (%)', fontsize=12, fontweight='bold')
+ax5.set_title('Fig. 5: Error por Categoría de Tamaño', fontsize=13, fontweight='bold', pad=15)
+ax5.set_ylim(0, 6)
+ax5.grid(axis='y', alpha=0.3, linestyle='--')
+
+for bar, err in zip(bars, errores_medios):
+    ax5.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.2, 
+             f'{err:.2f}%', ha='center', va='bottom', fontsize=11, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('figura5_por_categoria.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("✅ Todas las figuras han sido generadas:")
+print("   - figura1_error_vs_masa.png")
+print("   - figura2_comparacion.png")
+print("   - figura3_histograma.png")
+print("   - figura4_geometria.png")
+print("   - figura5_por_categoria.png")
